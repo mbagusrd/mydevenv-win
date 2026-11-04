@@ -1,0 +1,24 @@
+# Environment & Local Config
+.env
+!.env.example
+
+# Binaries & Downloads (Portable Runtimes)
+/bin/
+/php/
+/archives/
+/tmp/
+
+# Logs & PIDs
+/logs/
+*.log
+*.pid
+
+# Webroot default files
+/www/*
+!/www/index.php
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
