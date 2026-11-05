@@ -219,13 +219,27 @@ http {
                 }
             }
 
+            # Nested project routing (CodeIgniter / legacy MVC with index.php/path)
+            location ~ ^/(?<app>[^/]+)(?<path_info>/.*)?$ {
+                try_files `$uri `$uri/ /`$app/index.php`$path_info;
+
+                location ~ ^/(?<app_name>[^/]+)(?<php_script>.+\.php)(?<sub_path_info>.*)$ {
+                    include        default_php.conf;
+                    fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
+                    fastcgi_param  PATH_INFO        `$sub_path_info;
+                    fastcgi_param  SCRIPT_NAME      /`$app_name`$php_script;
+                    include        fastcgi_params;
+                }
+            }
+
             try_files `$uri `$uri/ /index.php?`$query_string;
         }
 
-        location ~ \.php$ {
+        location ~ ^(?<php_script>.+\.php)(?<path_info>.*)$ {
             include        default_php.conf;
-            fastcgi_index  index.php;
             fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
+            fastcgi_param  PATH_INFO        `$path_info;
+            fastcgi_param  SCRIPT_NAME      `$php_script;
             include        fastcgi_params;
         }
     }
