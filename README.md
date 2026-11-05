@@ -92,7 +92,7 @@ Disediakan wrapper script untuk memudahkan eksekusi CLI:
 
 | Perintah | Deskripsi |
 |---|---|
-| `run.bat` | Control panel interaktif (Install, Start, Stop, Switch PHP, Status) |
+| `run.bat` | Control panel interaktif (Install, Start, Stop, Switch PHP, Status, Manage PATH) |
 | `cmd.bat` | Membuka command prompt dengan PATH lokal aktif (`php`, `composer`, `mysql`) |
 | `php -v` | Menjalankan PHP versi default (sesuai `.env`) |
 | `php82 -v` | Menjalankan PHP 8.2 secara spesifik |

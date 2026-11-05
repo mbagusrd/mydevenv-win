@@ -40,10 +40,11 @@ echo  [5] Open Dev Terminal (cmd.bat with PATH)
 echo  [6] Open Web in Browser (http://localhost)
 echo  [7] Install / Re-install Dependencies (install.bat)
 echo  [8] Check Status Details
+echo  [9] Manage User PATH (Add/Remove from Windows PATH)
 echo  [0] Exit
 echo -------------------------------------------------------
 set "CHOICE="
-set /p "CHOICE=Pilih menu [0-8]: "
+set /p "CHOICE=Pilih menu [0-9]: "
 
 if "%CHOICE%"=="1" goto :action_start
 if "%CHOICE%"=="2" goto :action_stop
@@ -53,6 +54,7 @@ if "%CHOICE%"=="5" goto :action_terminal
 if "%CHOICE%"=="6" goto :action_browser
 if "%CHOICE%"=="7" goto :action_install
 if "%CHOICE%"=="8" goto :action_status
+if "%CHOICE%"=="9" goto :submenu_path
 if "%CHOICE%"=="0" goto :action_exit
 
 echo Pilihan tidak valid.
@@ -172,6 +174,58 @@ netstat -ano | findstr /i "LISTENING" | findstr /r ":80 :8082 :8083 :8084 :3306 
 echo.
 pause
 goto :main_menu
+
+:submenu_path
+cls
+echo =======================================================
+echo            Manage Windows User PATH
+echo =======================================================
+echo.
+echo Menambahkan folder project dan MariaDB ke User PATH
+echo agar 'php', 'composer', dan 'mysql' bisa langsung
+echo dipanggil di Command Prompt / PowerShell manapun.
+echo.
+echo  [1] Tambahkan ke User PATH (Permanent)
+echo  [2] Hapus dari User PATH
+echo  [0] Kembali ke Menu Utama
+echo -------------------------------------------------------
+set "PATH_OPT="
+set /p "PATH_OPT=Pilih menu [0-2]: "
+
+if "%PATH_OPT%"=="0" goto :main_menu
+
+if "%PATH_OPT%"=="1" (
+    powershell -NoProfile -Command ^
+        "$root = (Get-Item -Path '%~dp0').FullName.TrimEnd('\');" ^
+        "$mysql = Join-Path $root 'bin\mariadb\bin';" ^
+        "$old = [Environment]::GetEnvironmentVariable('Path', 'User');" ^
+        "$parts = @($old -split ';' | Where-Object { $_ -ne '' -and $_ -ne $root -and $_ -ne $mysql });" ^
+        "$new = ($parts + @($root, $mysql)) -join ';';" ^
+        "[Environment]::SetEnvironmentVariable('Path', $new, 'User');"
+    echo.
+    echo [OK] Berhasil ditambahkan ke User PATH!
+    echo Catatan: Buka jendela CMD/PowerShell baru agar efek terasa.
+    pause
+    goto :main_menu
+)
+
+if "%PATH_OPT%"=="2" (
+    powershell -NoProfile -Command ^
+        "$root = (Get-Item -Path '%~dp0').FullName.TrimEnd('\');" ^
+        "$mysql = Join-Path $root 'bin\mariadb\bin';" ^
+        "$old = [Environment]::GetEnvironmentVariable('Path', 'User');" ^
+        "$parts = @($old -split ';' | Where-Object { $_ -ne '' -and $_ -ne $root -and $_ -ne $mysql });" ^
+        "$new = $parts -join ';';" ^
+        "[Environment]::SetEnvironmentVariable('Path', $new, 'User');"
+    echo.
+    echo [OK] Berhasil dihapus dari User PATH!
+    pause
+    goto :main_menu
+)
+
+echo Pilihan tidak valid.
+timeout /t 2 >nul
+goto :submenu_path
 
 :action_exit
 exit /b 0
