@@ -27,7 +27,7 @@ if exist ".env" (
 )
 
 echo Status Services:
-echo   Nginx   : %STATUS_NGINX% (Port 80, 8082, 8083, 8084)
+echo   Nginx   : %STATUS_NGINX% (Port 80, 8056, 8074, 8082, 8083, 8084)
 echo   MariaDB : %STATUS_MARIADB% (Port 3306)
 echo   PHP-CGI : %STATUS_PHP% (Default Port 80: PHP %CURRENT_PHP%)
 echo.
@@ -92,21 +92,25 @@ echo =======================================================
 echo.
 echo PHP aktif saat ini pada Port 80: PHP %CURRENT_PHP%
 echo.
-echo  [1] PHP 8.2 (Port 9082)
-echo  [2] PHP 8.3 (Port 9083)
-echo  [3] PHP 8.4 (Port 9084)
+echo  [1] PHP 5.6 (Port 9056)
+echo  [2] PHP 7.4 (Port 9074)
+echo  [3] PHP 8.2 (Port 9082)
+echo  [4] PHP 8.3 (Port 9083)
+echo  [5] PHP 8.4 (Port 9084)
 echo  [0] Kembali ke Menu Utama
 echo -------------------------------------------------------
 set "PHP_CHOICE="
-set /p "PHP_CHOICE=Pilih versi [0-3]: "
+set /p "PHP_CHOICE=Pilih versi [0-5]: "
 
 if "%PHP_CHOICE%"=="0" goto :main_menu
 
 set "NEW_VER="
 set "NEW_PORT="
-if "%PHP_CHOICE%"=="1" (set "NEW_VER=8.2" & set "NEW_PORT=9082")
-if "%PHP_CHOICE%"=="2" (set "NEW_VER=8.3" & set "NEW_PORT=9083")
-if "%PHP_CHOICE%"=="3" (set "NEW_VER=8.4" & set "NEW_PORT=9084")
+if "%PHP_CHOICE%"=="1" (set "NEW_VER=5.6" & set "NEW_PORT=9056")
+if "%PHP_CHOICE%"=="2" (set "NEW_VER=7.4" & set "NEW_PORT=9074")
+if "%PHP_CHOICE%"=="3" (set "NEW_VER=8.2" & set "NEW_PORT=9082")
+if "%PHP_CHOICE%"=="4" (set "NEW_VER=8.3" & set "NEW_PORT=9083")
+if "%PHP_CHOICE%"=="5" (set "NEW_VER=8.4" & set "NEW_PORT=9084")
 
 if "%NEW_VER%"=="" (
     echo Pilihan tidak valid.
@@ -170,7 +174,7 @@ tasklist | findstr /i "nginx mysqld php-cgi"
 if %ERRORLEVEL% neq 0 echo Tidak ada process aktif.
 echo.
 echo [Listening Ports]
-netstat -ano | findstr /i "LISTENING" | findstr /r ":80 :8082 :8083 :8084 :3306 :9082 :9083 :9084"
+netstat -ano | findstr /i "LISTENING" | findstr /r ":80 :8056 :8074 :8082 :8083 :8084 :3306 :9056 :9074 :9082 :9083 :9084"
 echo.
 pause
 goto :main_menu

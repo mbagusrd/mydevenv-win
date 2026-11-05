@@ -57,6 +57,16 @@ if (-not (Test-Path (Join-Path $nginxDir "nginx.exe"))) {
 
 # 2. Download PHP versions (NTS x64) - Versi patch terbaru aman CVE/php2shell
 $phpVersions = @{
+    "5.6" = @{
+        "url" = "https://windows.php.net/downloads/releases/archives/php-5.6.40-nts-Win32-VC11-x64.zip"
+        "dir" = Join-Path $phpDir "php-5.6"
+        "port" = 9056
+    }
+    "7.4" = @{
+        "url" = "https://windows.php.net/downloads/releases/archives/php-7.4.33-nts-Win32-vc15-x64.zip"
+        "dir" = Join-Path $phpDir "php-7.4"
+        "port" = 9074
+    }
     "8.2" = @{
         "url" = "https://downloads.php.net/~windows/releases/archives/php-8.2.35-nts-Win32-vs16-x64.zip"
         "dir" = Join-Path $phpDir "php-8.2"
@@ -85,12 +95,19 @@ foreach ($ver in $phpVersions.Keys) {
         Copy-Item -Path $iniDev -Destination $iniFile
         $content = Get-Content $iniFile
         $content = $content -replace ';extension_dir = "ext"', 'extension_dir = "ext"'
+        $content = $content -replace '; extension_dir = "ext"', 'extension_dir = "ext"'
         $content = $content -replace ';extension=curl', 'extension=curl'
         $content = $content -replace ';extension=fileinfo', 'extension=fileinfo'
         $content = $content -replace ';extension=mbstring', 'extension=mbstring'
         $content = $content -replace ';extension=mysqli', 'extension=mysqli'
         $content = $content -replace ';extension=openssl', 'extension=openssl'
         $content = $content -replace ';extension=pdo_mysql', 'extension=pdo_mysql'
+        $content = $content -replace ';extension=php_curl\.dll', 'extension=php_curl.dll'
+        $content = $content -replace ';extension=php_fileinfo\.dll', 'extension=php_fileinfo.dll'
+        $content = $content -replace ';extension=php_mbstring\.dll', 'extension=php_mbstring.dll'
+        $content = $content -replace ';extension=php_mysqli\.dll', 'extension=php_mysqli.dll'
+        $content = $content -replace ';extension=php_openssl\.dll', 'extension=php_openssl.dll'
+        $content = $content -replace ';extension=php_pdo_mysql\.dll', 'extension=php_pdo_mysql.dll'
         $content = $content -replace ';date.timezone =', 'date.timezone = Asia/Jakarta'
         Set-Content -Path $iniFile -Value $content
         Write-Host "php.ini configured for PHP $ver" -ForegroundColor Green
@@ -143,7 +160,7 @@ $envExampleFile = Join-Path $BaseDir ".env.example"
 $envDefault = @"
 # Nginx Document Root (relatif terhadap bin/nginx misal ../../www atau absolut path)
 NGINX_WEB_ROOT=../../www
-# Default PHP version untuk Port 80 (pilihan: 8.2 / 8.3 / 8.4)
+# Default PHP version untuk Port 80 (pilihan: 5.6 / 7.4 / 8.2 / 8.3 / 8.4)
 DEFAULT_PHP_VERSION=8.4
 MARIADB_ROOT_PASSWORD=$MariaDbRootPassword
 "@
@@ -177,11 +194,85 @@ http {
         index        index.php index.html;
 
         location / {
+            # Generic Laravel projects support (e.g. /order-appsnew/public/...)
+            location ~ ^/(?<app>[^/]+)/public/ {
+                try_files `$uri `$uri/ /`$app/public/index.php?`$query_string;
+
+                location ~ \.php$ {
+                    include        default_php.conf;
+                    fastcgi_index  index.php;
+                    fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
+                    include        fastcgi_params;
+                }
+            }
+
             try_files `$uri `$uri/ /index.php?`$query_string;
         }
 
         location ~ \.php$ {
             include        default_php.conf;
+            fastcgi_index  index.php;
+            fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
+            include        fastcgi_params;
+        }
+    }
+
+    # PHP 5.6 Dedicated (Port 8056)
+    server {
+        listen       8056;
+        server_name  localhost;
+        include      webroot.conf;
+        index        index.php index.html;
+
+        location / {
+            # Generic Laravel projects support (e.g. /order-appsnew/public/...)
+            location ~ ^/(?<app>[^/]+)/public/ {
+                try_files `$uri `$uri/ /`$app/public/index.php?`$query_string;
+
+                location ~ \.php$ {
+                    fastcgi_pass   127.0.0.1:9056;
+                    fastcgi_index  index.php;
+                    fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
+                    include        fastcgi_params;
+                }
+            }
+
+            try_files `$uri `$uri/ /index.php?`$query_string;
+        }
+
+        location ~ \.php$ {
+            fastcgi_pass   127.0.0.1:9056;
+            fastcgi_index  index.php;
+            fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
+            include        fastcgi_params;
+        }
+    }
+
+    # PHP 7.4 Dedicated (Port 8074)
+    server {
+        listen       8074;
+        server_name  localhost;
+        include      webroot.conf;
+        index        index.php index.html;
+
+        location / {
+            # Generic Laravel projects support (e.g. /order-appsnew/public/...)
+            location ~ ^/(?<app>[^/]+)/public/ {
+                try_files `$uri `$uri/ /`$app/public/index.php?`$query_string;
+
+                location ~ \.php$ {
+                    fastcgi_pass   127.0.0.1:9074;
+                    fastcgi_index  index.php;
+                    fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
+                    include        fastcgi_params;
+                }
+            }
+
+            try_files `$uri `$uri/ /index.php?`$query_string;
+        }
+
+        location ~ \.php$ {
+            fastcgi_pass   127.0.0.1:9074;
             fastcgi_index  index.php;
             fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
             include        fastcgi_params;
@@ -196,6 +287,18 @@ http {
         index        index.php index.html;
 
         location / {
+            # Generic Laravel projects support (e.g. /order-appsnew/public/...)
+            location ~ ^/(?<app>[^/]+)/public/ {
+                try_files `$uri `$uri/ /`$app/public/index.php?`$query_string;
+
+                location ~ \.php$ {
+                    fastcgi_pass   127.0.0.1:9082;
+                    fastcgi_index  index.php;
+                    fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
+                    include        fastcgi_params;
+                }
+            }
+
             try_files `$uri `$uri/ /index.php?`$query_string;
         }
 
@@ -215,6 +318,18 @@ http {
         index        index.php index.html;
 
         location / {
+            # Generic Laravel projects support (e.g. /order-appsnew/public/...)
+            location ~ ^/(?<app>[^/]+)/public/ {
+                try_files `$uri `$uri/ /`$app/public/index.php?`$query_string;
+
+                location ~ \.php$ {
+                    fastcgi_pass   127.0.0.1:9083;
+                    fastcgi_index  index.php;
+                    fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
+                    include        fastcgi_params;
+                }
+            }
+
             try_files `$uri `$uri/ /index.php?`$query_string;
         }
 
@@ -234,6 +349,18 @@ http {
         index        index.php index.html;
 
         location / {
+            # Generic Laravel projects support (e.g. /order-appsnew/public/...)
+            location ~ ^/(?<app>[^/]+)/public/ {
+                try_files `$uri `$uri/ /`$app/public/index.php?`$query_string;
+
+                location ~ \.php$ {
+                    fastcgi_pass   127.0.0.1:9084;
+                    fastcgi_index  index.php;
+                    fastcgi_param  SCRIPT_FILENAME  `$document_root`$fastcgi_script_name;
+                    include        fastcgi_params;
+                }
+            }
+
             try_files `$uri `$uri/ /index.php?`$query_string;
         }
 
@@ -269,6 +396,8 @@ if (-not (Test-Path $indexPhp)) {
     <h2>Dev Environment Active</h2>
     <p>Current PHP Version: <b><?php echo phpversion(); ?></b></p>
     <ul>
+        <li><a href="http://localhost:8056">Port 8056 (PHP 5.6)</a></li>
+        <li><a href="http://localhost:8074">Port 8074 (PHP 7.4)</a></li>
         <li><a href="http://localhost:8082">Port 8082 (PHP 8.2)</a></li>
         <li><a href="http://localhost:8083">Port 8083 (PHP 8.3)</a></li>
         <li><a href="http://localhost:8084">Port 8084 (PHP 8.4)</a></li>
@@ -316,6 +445,8 @@ echo Nginx Root: !NGINX_ROOT_FORMATTED!
 
 :: Set Default PHP Port for Port 80
 set "PHP_PORT=9084"
+if "!DEFAULT_PHP!"=="5.6" set "PHP_PORT=9056"
+if "!DEFAULT_PHP!"=="7.4" set "PHP_PORT=9074"
 if "!DEFAULT_PHP!"=="8.2" set "PHP_PORT=9082"
 if "!DEFAULT_PHP!"=="8.3" set "PHP_PORT=9083"
 if "!DEFAULT_PHP!"=="8.4" set "PHP_PORT=9084"
@@ -326,6 +457,8 @@ echo 1. MariaDB...
 start "MariaDB" "%ROOT%bin\mariadb\bin\mysqld.exe" --basedir="%ROOT%bin\mariadb" --datadir="%ROOT%bin\mariadb\data" --console
 
 echo 2. PHP-CGI FastCGI...
+start "PHP 5.6 CGI" /min "%ROOT%php\php-5.6\php-cgi.exe" -b 127.0.0.1:9056 -c "%ROOT%php\php-5.6\php.ini"
+start "PHP 7.4 CGI" /min "%ROOT%php\php-7.4\php-cgi.exe" -b 127.0.0.1:9074 -c "%ROOT%php\php-7.4\php.ini"
 start "PHP 8.2 CGI" /min "%ROOT%php\php-8.2\php-cgi.exe" -b 127.0.0.1:9082 -c "%ROOT%php\php-8.2\php.ini"
 start "PHP 8.3 CGI" /min "%ROOT%php\php-8.3\php-cgi.exe" -b 127.0.0.1:9083 -c "%ROOT%php\php-8.3\php.ini"
 start "PHP 8.4 CGI" /min "%ROOT%php\php-8.4\php-cgi.exe" -b 127.0.0.1:9084 -c "%ROOT%php\php-8.4\php.ini"
@@ -339,6 +472,8 @@ echo.
 echo Dev environment running!
 echo URL:
 echo - Default (Port 80): http://localhost (PHP !DEFAULT_PHP!)
+echo - PHP 5.6 (Port 8056): http://localhost:8056
+echo - PHP 7.4 (Port 8074): http://localhost:8074
 echo - PHP 8.2 (Port 8082): http://localhost:8082
 echo - PHP 8.3 (Port 8083): http://localhost:8083
 echo - PHP 8.4 (Port 8084): http://localhost:8084

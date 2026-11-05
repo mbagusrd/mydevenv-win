@@ -7,25 +7,35 @@ echo           Switch Default PHP Version (Port 80)
 echo =======================================================
 echo.
 echo Pilih versi PHP default untuk http://localhost (Port 80):
-echo [1] PHP 8.2 (Port 9082)
-echo [2] PHP 8.3 (Port 9083)
-echo [3] PHP 8.4 (Port 9084)
+echo [1] PHP 5.6 (Port 9056)
+echo [2] PHP 7.4 (Port 9074)
+echo [3] PHP 8.2 (Port 9082)
+echo [4] PHP 8.3 (Port 9083)
+echo [5] PHP 8.4 (Port 9084)
 echo.
 
 set "CHOICE="
-set /p "CHOICE=Masukkan pilihan (1/2/3): "
+set /p "CHOICE=Masukkan pilihan (1-5): "
 
 set "TARGET_VER="
 set "TARGET_PORT="
 if "%CHOICE%"=="1" (
+    set "TARGET_VER=5.6"
+    set "TARGET_PORT=9056"
+)
+if "%CHOICE%"=="2" (
+    set "TARGET_VER=7.4"
+    set "TARGET_PORT=9074"
+)
+if "%CHOICE%"=="3" (
     set "TARGET_VER=8.2"
     set "TARGET_PORT=9082"
 )
-if "%CHOICE%"=="2" (
+if "%CHOICE%"=="4" (
     set "TARGET_VER=8.3"
     set "TARGET_PORT=9083"
 )
-if "%CHOICE%"=="3" (
+if "%CHOICE%"=="5" (
     set "TARGET_VER=8.4"
     set "TARGET_PORT=9084"
 )

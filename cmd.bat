@@ -15,6 +15,8 @@ call composer --version
 echo.
 echo Shortcut tersedia:
 echo - php        (PHP aktif sesuai .env)
+echo - php56      (PHP 5.6)
+echo - php74      (PHP 7.4)
 echo - php82      (PHP 8.2)
 echo - php83      (PHP 8.3)
 echo - php84      (PHP 8.4)

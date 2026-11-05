@@ -39,6 +39,8 @@ echo Nginx Root: !NGINX_ROOT_FORMATTED!
 
 :: Set Default PHP Port for Port 80
 set "PHP_PORT=9084"
+if "!DEFAULT_PHP!"=="5.6" set "PHP_PORT=9056"
+if "!DEFAULT_PHP!"=="7.4" set "PHP_PORT=9074"
 if "!DEFAULT_PHP!"=="8.2" set "PHP_PORT=9082"
 if "!DEFAULT_PHP!"=="8.3" set "PHP_PORT=9083"
 if "!DEFAULT_PHP!"=="8.4" set "PHP_PORT=9084"
@@ -49,6 +51,8 @@ echo 1. MariaDB...
 start "MariaDB" /b "%ROOT%bin\mariadb\bin\mysqld.exe" --basedir="%ROOT%bin\mariadb" --datadir="%ROOT%bin\mariadb\data"
 
 echo 2. PHP-CGI FastCGI...
+start "PHP 5.6 CGI" /b "%ROOT%php\php-5.6\php-cgi.exe" -b 127.0.0.1:9056 -c "%ROOT%php\php-5.6\php.ini"
+start "PHP 7.4 CGI" /b "%ROOT%php\php-7.4\php-cgi.exe" -b 127.0.0.1:9074 -c "%ROOT%php\php-7.4\php.ini"
 start "PHP 8.2 CGI" /b "%ROOT%php\php-8.2\php-cgi.exe" -b 127.0.0.1:9082 -c "%ROOT%php\php-8.2\php.ini"
 start "PHP 8.3 CGI" /b "%ROOT%php\php-8.3\php-cgi.exe" -b 127.0.0.1:9083 -c "%ROOT%php\php-8.3\php.ini"
 start "PHP 8.4 CGI" /b "%ROOT%php\php-8.4\php-cgi.exe" -b 127.0.0.1:9084 -c "%ROOT%php\php-8.4\php.ini"
