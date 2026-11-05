@@ -112,6 +112,7 @@ foreach ($ver in $phpVersions.Keys) {
         $content = $content -replace ';extension=php_curl\.dll', 'extension=php_curl.dll'
         $content = $content -replace ';extension=php_fileinfo\.dll', 'extension=php_fileinfo.dll'
         $content = $content -replace ';extension=php_mbstring\.dll', 'extension=php_mbstring.dll'
+        $content = $content -replace ';extension=php_mysql\.dll', 'extension=php_mysql.dll'
         $content = $content -replace ';extension=php_mysqli\.dll', 'extension=php_mysqli.dll'
         $content = $content -replace ';extension=php_openssl\.dll', 'extension=php_openssl.dll'
         $content = $content -replace ';extension=php_pdo_mysql\.dll', 'extension=php_pdo_mysql.dll'
