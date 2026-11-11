@@ -643,13 +643,9 @@ echo Press any key to close this window (services remain active).
 pause >nul
 exit /b 0
 
-:: launch title exe [args...]  -> hidden in silent mode, minimized window otherwise
+:: launch title exe [args...]  -> always fully hidden; --silent only skips output/pause
 :launch
-if "%SILENT%"=="1" (
-    wscript "%ROOT%run-hidden.vbs" "%~2" %3 %4 %5 %6 %7
-) else (
-    start "%~1" /min "%~2" %3 %4 %5 %6 %7
-)
+wscript "%ROOT%run-hidden.vbs" "%~2" %3 %4 %5 %6 %7
 goto :eof
 "@
 Set-Content -Path $startScript -Value $startBatContent
