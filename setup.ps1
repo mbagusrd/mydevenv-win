@@ -20,6 +20,46 @@ $archivesDir = Join-Path $BaseDir "archives"
     if (-not (Test-Path $_)) { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
 }
 
+function Install-VcRuntime {
+    param([string]$DllName, [string]$Url, [string]$ArchiveName, [string]$Label)
+    $sysDll = Join-Path $env:SystemRoot "System32\$DllName"
+    if (Test-Path $sysDll) {
+        Write-Host "$Label already installed, skipping." -ForegroundColor Green
+        return
+    }
+    $installer = Join-Path $archivesDir $ArchiveName
+    if (-not (Test-Path $installer)) {
+        Write-Host "Downloading $Label runtime..." -ForegroundColor Yellow
+        Invoke-WebRequest -Uri $Url -OutFile $installer
+    } else {
+        Write-Host "Runtime installer $ArchiveName exists in archives/, reusing." -ForegroundColor Green
+    }
+    Write-Host "Installing $Label runtime (silent)..." -ForegroundColor Yellow
+    Start-Process -FilePath $installer -ArgumentList "/install", "/q", "/norestart" -Wait
+}
+
+# 0. Visual C++ Runtimes (dibutuhkan binary PHP)
+#    VC++ 2012 (VC11)  -> PHP 5.6 (msvcr110.dll)
+Install-VcRuntime -DllName "msvcr110.dll" `
+    -Url "https://download.microsoft.com/download/9/C/D/9CD480DC-0301-41B0-AAAB-FE9AC1F60237/VSU4/vcredist_x64.exe" `
+    -ArchiveName "vcredist2012_x64.exe" -Label "Visual C++ 2012 x64"
+#    VC++ 2015-2022 (unified) -> PHP 7.4 (VC15/2017), 8.2 & 8.3 (VS16/2019), 8.4 (VS17/2022)
+$hasVcr140 = (Test-Path (Join-Path $env:SystemRoot "System32\vcruntime140.dll")) -and `
+    (Test-Path (Join-Path $env:SystemRoot "System32\vcruntime140_1.dll"))
+if (-not $hasVcr140) {
+    Install-VcRuntime -DllName "vcruntime140.dll" `
+        -Url "https://aka.ms/vs/17/release/VC_redist.x64.exe" `
+        -ArchiveName "vcredist2015-2022_x64.exe" -Label "Visual C++ 2015-2022 x64"
+} else {
+    Write-Host "Visual C++ 2015-2022 x64 already installed, skipping." -ForegroundColor Green
+}
+#    Verifikasi hasil instalasi
+foreach ($dll in @("msvcr110.dll", "vcruntime140.dll", "vcruntime140_1.dll")) {
+    if (-not (Test-Path (Join-Path $env:SystemRoot "System32\$dll"))) {
+        Write-Host "[WARNING] $dll tidak ditemukan di System32. Kemungkinan install.bat dijalankan tanpa hak Administrator. Jalankan ulang sebagai Administrator." -ForegroundColor Red
+    }
+}
+
 function Download-And-Extract {
     param([string]$Url, [string]$DestDir, [string]$ZipName)
     $zipPath = Join-Path $archivesDir $ZipName
@@ -508,13 +548,33 @@ if (-not (Test-Path $indexPhp)) {
 }
 
 # 6. Start & Stop scripts
+$runHiddenScript = Join-Path $BaseDir "run-hidden.vbs"
+$runHiddenContent = @'
+' Run an executable completely hidden (no console window).
+' Usage: wscript run-hidden.vbs "C:\path\app.exe" [arg1] [arg2] ...
+Set sh = CreateObject("WScript.Shell")
+If WScript.Arguments.Count = 0 Then WScript.Quit
+exe = Chr(34) & WScript.Arguments(0) & Chr(34)
+args = ""
+For i = 1 To WScript.Arguments.Count - 1
+    args = args & " " & WScript.Arguments(i)
+Next
+sh.Run exe & args, 0, False
+'@
+Set-Content -Path $runHiddenScript -Value $runHiddenContent
+
 $startScript = Join-Path $BaseDir "start.bat"
 $startBatContent = @"
 @echo off
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 set "ROOT=%~dp0"
-echo [Starting Portable Dev Stack]
+
+:: --silent flag: run all services fully hidden (no console windows, no output)
+set "SILENT=0"
+if /i "%~1"=="--silent" set "SILENT=1"
+
+if "%SILENT%"=="0" echo [Starting Portable Dev Stack]
 
 :: 0. Parse .env
 set "NGINX_ROOT=../../www"
@@ -538,7 +598,7 @@ if "%NGINX_ROOT:~0,2%"==".." (
 :: Normalize backward slashes to forward slashes for Nginx
 set "NGINX_ROOT_FORMATTED=!FULL_WEBROOT:\=/!"
 echo root "!NGINX_ROOT_FORMATTED!"; > "%ROOT%bin\nginx\conf\webroot.conf"
-echo Nginx Root: !NGINX_ROOT_FORMATTED!
+if "%SILENT%"=="0" echo Nginx Root: !NGINX_ROOT_FORMATTED!
 
 :: Set Default PHP Port for Port 80
 set "PHP_PORT=9084"
@@ -548,22 +608,25 @@ if "!DEFAULT_PHP!"=="8.2" set "PHP_PORT=9082"
 if "!DEFAULT_PHP!"=="8.3" set "PHP_PORT=9083"
 if "!DEFAULT_PHP!"=="8.4" set "PHP_PORT=9084"
 echo fastcgi_pass 127.0.0.1:!PHP_PORT!; > "%ROOT%bin\nginx\conf\default_php.conf"
-echo Default PHP on Port 80: !DEFAULT_PHP! (port !PHP_PORT!)
+if "%SILENT%"=="0" echo Default PHP on Port 80: !DEFAULT_PHP! (port !PHP_PORT!)
 
-echo 1. MariaDB...
-start "MariaDB" "%ROOT%bin\mariadb\bin\mysqld.exe" --basedir="%ROOT%bin\mariadb" --datadir="%ROOT%bin\mariadb\data" --console
+:: 1. MariaDB...
+if "%SILENT%"=="0" echo 1. MariaDB...
+call :launch "MariaDB" "%ROOT%bin\mariadb\bin\mysqld.exe" --basedir="%ROOT%bin\mariadb" --datadir="%ROOT%bin\mariadb\data" --console
 
-echo 2. PHP-CGI FastCGI...
-start "PHP 5.6 CGI" /min "%ROOT%php\php-5.6\php-cgi.exe" -b 127.0.0.1:9056 -c "%ROOT%php\php-5.6\php.ini"
-start "PHP 7.4 CGI" /min "%ROOT%php\php-7.4\php-cgi.exe" -b 127.0.0.1:9074 -c "%ROOT%php\php-7.4\php.ini"
-start "PHP 8.2 CGI" /min "%ROOT%php\php-8.2\php-cgi.exe" -b 127.0.0.1:9082 -c "%ROOT%php\php-8.2\php.ini"
-start "PHP 8.3 CGI" /min "%ROOT%php\php-8.3\php-cgi.exe" -b 127.0.0.1:9083 -c "%ROOT%php\php-8.3\php.ini"
-start "PHP 8.4 CGI" /min "%ROOT%php\php-8.4\php-cgi.exe" -b 127.0.0.1:9084 -c "%ROOT%php\php-8.4\php.ini"
+:: 2. PHP-CGI FastCGI...
+if "%SILENT%"=="0" echo 2. PHP-CGI FastCGI...
+call :launch "PHP 5.6 CGI" "%ROOT%php\php-5.6\php-cgi.exe" -b 127.0.0.1:9056 -c "%ROOT%php\php-5.6\php.ini"
+call :launch "PHP 7.4 CGI" "%ROOT%php\php-7.4\php-cgi.exe" -b 127.0.0.1:9074 -c "%ROOT%php\php-7.4\php.ini"
+call :launch "PHP 8.2 CGI" "%ROOT%php\php-8.2\php-cgi.exe" -b 127.0.0.1:9082 -c "%ROOT%php\php-8.2\php.ini"
+call :launch "PHP 8.3 CGI" "%ROOT%php\php-8.3\php-cgi.exe" -b 127.0.0.1:9083 -c "%ROOT%php\php-8.3\php.ini"
+call :launch "PHP 8.4 CGI" "%ROOT%php\php-8.4\php-cgi.exe" -b 127.0.0.1:9084 -c "%ROOT%php\php-8.4\php.ini"
 
-echo 3. Nginx...
-pushd "%ROOT%bin\nginx"
-start "Nginx" nginx.exe -p "%ROOT%bin\nginx"
-popd
+:: 3. Nginx...
+if "%SILENT%"=="0" echo 3. Nginx...
+call :launch "Nginx" "%ROOT%bin\nginx\nginx.exe" -p "%ROOT%bin\nginx"
+
+if "%SILENT%"=="1" exit /b 0
 
 echo.
 echo Dev environment running!
@@ -578,6 +641,16 @@ echo - MariaDB: 127.0.0.1:3306 (user: root)
 echo.
 echo Press any key to close this window (services remain active).
 pause >nul
+exit /b 0
+
+:: launch title exe [args...]  -> hidden in silent mode, minimized window otherwise
+:launch
+if "%SILENT%"=="1" (
+    wscript "%ROOT%run-hidden.vbs" "%~2" %3 %4 %5 %6 %7
+) else (
+    start "%~1" /min "%~2" %3 %4 %5 %6 %7
+)
+goto :eof
 "@
 Set-Content -Path $startScript -Value $startBatContent
 

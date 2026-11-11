@@ -1,8 +1,9 @@
 @echo off
-cd /d "%~dp0"
+echo [Stopping Portable Dev Stack]
 
 taskkill /f /im nginx.exe >nul 2>&1
 taskkill /f /im php-cgi.exe >nul 2>&1
 taskkill /f /im mysqld.exe >nul 2>&1
 
-exit /b 0
+echo All services stopped.
+pause

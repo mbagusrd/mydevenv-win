@@ -1,12 +1,12 @@
 @echo off
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
-title MyDevEnv2 - Control Panel
+title MyDevEnv-Win - Control Panel
 
 :main_menu
 cls
 echo =======================================================
-echo          MyDevEnv2 - Portable Dev Control Panel
+echo          MyDevEnv-Win - Portable Dev Control Panel
 echo =======================================================
 echo.
 
@@ -64,7 +64,7 @@ goto :main_menu
 :action_start
 echo.
 echo Menjalankan services di background...
-call start.bat
+call start.bat --silent
 timeout /t 2 >nul
 goto :main_menu
 
@@ -80,7 +80,7 @@ echo.
 echo Me-restart services...
 call stop.bat
 timeout /t 1 >nul
-call start.bat
+call start.bat --silent
 timeout /t 2 >nul
 goto :main_menu
 

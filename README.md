@@ -1,4 +1,4 @@
-# MyDevEnv2 - Portable Windows Web Dev Stack
+# MyDevEnv-Win - Portable Windows Web Dev Stack
 
 Portable local development stack untuk Windows tanpa Docker atau WSL. Menyediakan Nginx, multi-versi PHP (5.6, 7.4, 8.2, 8.3, 8.4) aman CVE patch terbaru, MariaDB, dan Composer dalam satu paket mandiri yang bisa dipindahkan antar drive/folder tanpa merusak konfigurasi.
 
@@ -34,8 +34,8 @@ Portable local development stack untuk Windows tanpa Docker atau WSL. Menyediaka
 
 1. Clone repositori ini:
    ```bash
-   git clone https://github.com/mbagusrd/mydevenv2.git
-   cd mydevenv2
+   git clone https://github.com/mbagusrd/mydevenv-win.git
+   cd mydevenv-win
    ```
 2. Jalankan installer:
    - Double click `install.bat`, atau
@@ -113,7 +113,7 @@ Disediakan wrapper script untuk memudahkan eksekusi CLI:
 ## Struktur Direktori
 
 ```text
-mydevenv2/
+mydevenv-win/
 ├── archives/          # Cache file zip installer & binary download
 ├── bin/
 │   ├── mariadb/       # Runtime MariaDB & database data/
